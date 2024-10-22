@@ -1,3 +1,9 @@
+use clap::Parser;
+use crate::cli::RootCommand;
+
+mod cli; 
+
 fn main() {
-    println!("Hello, world!");
+    let command = RootCommand::parse();
+    command.run();   
 }
