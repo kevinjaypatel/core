@@ -43,34 +43,70 @@ fn init_coordinator() -> EyreResult<()> {
 
     // Define the command to run the other binary package within the same workspace.
     // This example assumes the workspace has a binary package named `merod`.
-    let output = Command::new("cargo")
-        .arg("run") // The cargo run command
-        .arg("-p") // Specify the package to run
-        .arg("merod") // Name of the binary package in the workspace
-        .arg("--") // Pass any arguments to the binary after this
-        .arg("--node-name") // Example argument to the binary
-        .arg("coordinator")
-        .arg("--home")
-        .arg("data")
-        .arg("init")
-        .arg("--server-port")
-        .arg("2427")
-        .arg("--swarm-port")
-        .arg("2527")
-        .stdout(Stdio::piped()) // Capture stdout
-        .stderr(Stdio::piped()) // Capture stderr
-        .output()?; // Execute the command and get the output
+    let mut command = Command::new("cargo");
 
-    println!("Status: {}", output.status);
-    println!("Stdout: {}", String::from_utf8_lossy(&output.stdout));
-    println!("Stderr: {}", String::from_utf8_lossy(&output.stderr));
+    command.arg("run"); // The cargo run command
+    command.arg("-p"); // Specify the package to run
+    command.arg("merod"); // Name of the binary package in the workspace
+    command.arg("--"); // Pass any arguments to the binary after this
+    command.arg("--node-name"); // Example argument to the binary
+    command.arg("coordinator");
+    command.arg("--home");
+    command.arg("data");
+    command.arg("init");
+    command.arg("--server-port");
+    command.arg("2427");
+    command.arg("--swarm-port");
+    command.arg("2527");
+    command.stdout(Stdio::piped()); // Capture stdout
+    command.stderr(Stdio::piped()); // Capture stderr
+
+    let child = command.output()?; // Execute the command and get the output
+    println!("Status: {}", child.status);
+    println!("Stdout: {}", String::from_utf8_lossy(&child.stdout));
+    println!("Stderr: {}", String::from_utf8_lossy(&child.stderr));
+
+    Ok(()) // Return the output (stdout, stderr, and exit status)
+}
+
+fn init_node() -> EyreResult<()> {
+    println!("Initializing node...");
+
+    // TODO: check if the data directory exists
+
+    // Define the command to run the other binary package within the same workspace.
+    // This example assumes the workspace has a binary package named `merod`.
+    let mut command = Command::new("cargo");
+
+    command.arg("run"); // The cargo run command
+    command.arg("-p"); // Specify the package to run
+    command.arg("merod"); // Name of the binary package in the workspace
+    command.arg("--"); // Pass any arguments to the binary after this
+    command.arg("--node-name"); // Example argument to the binary
+    command.arg("node");
+    command.arg("--home");
+    command.arg("data");
+    command.arg("init");
+    command.arg("--server-port");
+    command.arg("2428");
+    command.arg("--swarm-port");
+    command.arg("2528");
+    command.stdout(Stdio::piped()); // Capture stdout
+    command.stderr(Stdio::piped()); // Capture stderr
+
+    let child = command.output()?; // Execute the command and get the output
+    println!("Status: {}", child.status);
+    println!("Stdout: {}", String::from_utf8_lossy(&child.stdout));
+    println!("Stderr: {}", String::from_utf8_lossy(&child.stderr));
 
     Ok(()) // Return the output (stdout, stderr, and exit status)
 }
 
 async fn start_coordinator() -> EyreResult<()> {
     println!("Running coordinator...");
+
     let mut command = Command::new("cargo");
+
     command.arg("run"); // The cargo run command
     command.arg("-p"); // Specify the package to run
     command.arg("merod"); // Name of the binary package in the workspace
@@ -80,15 +116,31 @@ async fn start_coordinator() -> EyreResult<()> {
     command.arg("--home");
     command.arg("data");
     command.arg("run");
+    // command.stdin(Stdio::null());
+
+    // let child = command.spawn()?;
+    let child = command.output()?;
+
+    Ok(())
+}
+
+async fn start_node() -> EyreResult<()> {
+    println!("Running node...");
+
+    let mut command = Command::new("cargo");
+
+    command.arg("run"); // The cargo run command
+    command.arg("-p"); // Specify the package to run
+    command.arg("merod"); // Name of the binary package in the workspace
+    command.arg("--"); // Pass any arguments to the binary after this
+    command.arg("--node-name"); // Example argument to the binary
+    command.arg("node");
+    command.arg("--home");
+    command.arg("data");
+    command.arg("run");
     command.stdin(Stdio::null());
 
     let child = command.spawn()?;
-    // .arg("--node-type ")
-    // .arg("coordinator")
-    // .stdout(Stdio::piped()) // Capture stdout
-    // .stderr(Stdio::piped()) // Capture stderr
-    // .output()?; // Execute the command and get the output
-    // .spawn()?; // Execute the command and get the output
 
     Ok(())
 }
