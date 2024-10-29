@@ -134,13 +134,21 @@ async fn start_node() -> EyreResult<()> {
     command.arg("merod"); // Name of the binary package in the workspace
     command.arg("--"); // Pass any arguments to the binary after this
     command.arg("--node-name"); // Example argument to the binary
-    command.arg("node");
+    command.arg("node1");
     command.arg("--home");
     command.arg("data");
     command.arg("run");
-    command.stdin(Stdio::null());
+    // command.stdin(Stdio::null());
 
-    let child = command.spawn()?;
+    // let child = command.spawn()?;
+
+    // Execute the command as a child process
+    let child = command.output()?;
+
+    // Display the captured output from the child
+    println!("Status: {}", child.status);
+    println!("Stdout: {}", String::from_utf8_lossy(&child.stdout));
+    println!("Stderr: {}", String::from_utf8_lossy(&child.stderr));
 
     Ok(())
 }
@@ -152,12 +160,9 @@ impl RootCommand {
                 // TODO: check if coordinator is initialized
                 init_coordinator()
             }
+            "init-node" => init_node(),
             "start-coordinator" => start_coordinator().await,
-            "start-peer" => {
-                // check if the peer is already running
-                println!("Start peer was invoked...");
-                Ok(())
-            }
+            "start-node" => start_node().await,
             _ => {
                 println!("Unknown command...");
                 Ok(())
