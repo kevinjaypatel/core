@@ -49,6 +49,11 @@ fn init_coordinator(data: NodeData) -> EyreResult<()> {
     let node_name: &OsStr = OsStr::new(&data.coordinator.name);
     let node_home: &OsStr = OsStr::new(&data.coordinator.home);
 
+    let server_port_str = data.coordinator.server_port.to_string();
+    let swarm_port_str = data.coordinator.swarm_port.to_string();
+    let server_port: &OsStr = OsStr::new(&server_port_str);
+    let swarm_port = OsStr::new(&swarm_port_str);
+
     // Define the command to run the other binary package within the same workspace.
     // This example assumes the workspace has a binary package named `merod`.
     let mut command = Command::new("cargo");
@@ -63,9 +68,9 @@ fn init_coordinator(data: NodeData) -> EyreResult<()> {
     command.arg(node_home);
     command.arg("init");
     command.arg("--server-port");
-    command.arg("2427");
+    command.arg(server_port);
     command.arg("--swarm-port");
-    command.arg("2527");
+    command.arg(swarm_port);
     command.stdout(Stdio::piped()); // Capture stdout
     command.stderr(Stdio::piped()); // Capture stderr
 
