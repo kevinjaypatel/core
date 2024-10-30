@@ -41,10 +41,13 @@ struct NodeConfig {
     home: String,
 }
 
-fn init_coordinator() -> EyreResult<()> {
+fn init_coordinator(data: NodeData) -> EyreResult<()> {
     println!("Initializing coordinator...");
 
-    // TODO: check if the data directory exists
+    // Sets the default configuration for the node
+    // TODO: if the home directory doesnt exist, create it
+    let node_name: &OsStr = OsStr::new(&data.coordinator.name);
+    let node_home: &OsStr = OsStr::new(&data.coordinator.home);
 
     // Define the command to run the other binary package within the same workspace.
     // This example assumes the workspace has a binary package named `merod`.
@@ -55,9 +58,9 @@ fn init_coordinator() -> EyreResult<()> {
     command.arg("merod"); // Name of the binary package in the workspace
     command.arg("--"); // Pass any arguments to the binary after this
     command.arg("--node-name"); // Example argument to the binary
-    command.arg("coordinator");
+    command.arg(node_name);
     command.arg("--home");
-    command.arg("data");
+    command.arg(node_home);
     command.arg("init");
     command.arg("--server-port");
     command.arg("2427");
@@ -162,10 +165,10 @@ impl RootCommand {
     pub async fn run(self) -> EyreResult<()> {
         match self.action.as_str() {
             "init-coordinator" => {
-                let data = NodeData::load_data();
+                let data = NodeData::get_noad_data();
 
-                // TODO: check if coordinator is initialized
-                init_coordinator()
+                // TODO: check if coordinator is initialized @data.coordinator.home
+                init_coordinator(data)
             }
             "init-node" => init_node(),
             "start-coordinator" => start_coordinator().await,
@@ -179,27 +182,34 @@ impl RootCommand {
 }
 
 impl NodeData {
-    fn load_data() {
-        let path = match env::current_dir() {
-            Ok(path) => println!("Current working directory: {}", path.display()),
-            Err(e) => eprintln!("Failed to get current directory: {}", e),
-        };
-
+    fn get_noad_data() -> NodeData {
+        // TODO: Make Node Configuration Filepath constant with global scope
         let filename = "crates/merow/config/default.toml";
 
         let contents = match fs::read_to_string(filename) {
-            // If successful return the files text as `contents`.
-            // `c` is a local variable.
             Ok(c) => c,
-            // Handle the `error` case.
             Err(_) => {
-                // Write `msg` to `stderr`.
                 eprintln!("Could not read file `{}`", filename);
-                // Exit the program with exit code `1`.
                 exit(1);
             }
         };
 
         println!("TOML Contents: \n{}", contents);
+
+        let node_data: NodeData = match toml::from_str(&contents) {
+            Ok(nd) => nd,
+            Err(_) => {
+                // Write `msg` to `stderr`.
+                eprintln!("Unable to load data from `{}`", filename);
+                // Exit the program with exit code `1`.
+                exit(1);
+            }
+        };
+
+        // Convert the NodeData to a JSON string
+        // let serialized = serde_json::to_string(&node_data).unwrap();
+        // println!("serialized = {}", serialized);
+
+        return node_data;
     }
 }
