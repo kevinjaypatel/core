@@ -45,7 +45,6 @@ fn init_coordinator(data: NodeData) -> EyreResult<()> {
     println!("Initializing coordinator...");
 
     // Sets the default configuration for the node
-    // TODO: if the home directory doesnt exist, create it
     let node_name: &OsStr = OsStr::new(&data.coordinator.name);
     let node_home: &OsStr = OsStr::new(&data.coordinator.home);
 
@@ -53,6 +52,18 @@ fn init_coordinator(data: NodeData) -> EyreResult<()> {
     let swarm_port_str = data.coordinator.swarm_port.to_string();
     let server_port: &OsStr = OsStr::new(&server_port_str);
     let swarm_port = OsStr::new(&swarm_port_str);
+
+    // create the home directory if it doesnt exist
+    if !Path::new(node_home).is_dir() {
+        // Make the Node home directory
+        let result = match fs::create_dir(node_home) {
+            Ok(()) => match node_home.to_str() {
+                Some(valid_str) => println!("Created Node Home Directory: {}", valid_str),
+                None => println!("OsStr contains non-UTF-8 data: {:?}", node_home),
+            },
+            Err(error) => panic!("Problem creating the Node Home directory: {error:?}"),
+        };
+    }
 
     // Define the command to run the other binary package within the same workspace.
     // This example assumes the workspace has a binary package named `merod`.
