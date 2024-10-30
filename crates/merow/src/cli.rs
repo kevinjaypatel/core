@@ -27,14 +27,19 @@ pub struct RootCommand {
     pub action: String,
 }
 
-pub struct Node {
+#[derive(Serialize, Deserialize, Debug)]
+struct NodeData {
+    coordinator: NodeConfig,
+    admin: NodeConfig,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct NodeConfig {
     name: String,
-    node_type: Option<String>,
-    home: Utf8PathBuf,
     server_port: u16,
     swarm_port: u16,
+    home: String,
 }
-pub struct Peer {}
 
 fn init_coordinator() -> EyreResult<()> {
     println!("Initializing coordinator...");
@@ -157,6 +162,8 @@ impl RootCommand {
     pub async fn run(self) -> EyreResult<()> {
         match self.action.as_str() {
             "init-coordinator" => {
+                let data = NodeData::load_data();
+
                 // TODO: check if coordinator is initialized
                 init_coordinator()
             }
@@ -168,5 +175,31 @@ impl RootCommand {
                 Ok(())
             }
         }
+    }
+}
+
+impl NodeData {
+    fn load_data() {
+        let path = match env::current_dir() {
+            Ok(path) => println!("Current working directory: {}", path.display()),
+            Err(e) => eprintln!("Failed to get current directory: {}", e),
+        };
+
+        let filename = "crates/merow/config/default.toml";
+
+        let contents = match fs::read_to_string(filename) {
+            // If successful return the files text as `contents`.
+            // `c` is a local variable.
+            Ok(c) => c,
+            // Handle the `error` case.
+            Err(_) => {
+                // Write `msg` to `stderr`.
+                eprintln!("Could not read file `{}`", filename);
+                // Exit the program with exit code `1`.
+                exit(1);
+            }
+        };
+
+        println!("TOML Contents: \n{}", contents);
     }
 }
