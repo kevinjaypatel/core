@@ -5,9 +5,15 @@ authors.workspace = true
 edition.workspace = true
 repository.workspace = true
 license.workspace = true
-license-file.workspace = true
 
 [dependencies]
+clap = { workspace = true, features = ["env", "derive"] }
+const_format.workspace = true
+eyre.workspace = true
+merod = { path = "../merod" }
+tokio = { workspace = true, features = ["io-std", "macros"] }
+toml = "0.5.2"
+serde = { workspace = true, features = ["derive"] }
 
 [lints]
 workspace = true

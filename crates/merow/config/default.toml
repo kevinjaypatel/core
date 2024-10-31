@@ -1,5 +1,5 @@
 [coordinator]
-name = "data" 
+name = "coordinator" 
 server_port = 2427
 swarm_port = 2527
 home = "data"

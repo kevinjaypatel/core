@@ -1,9 +1,13 @@
-use clap::Parser;
+#![allow(warnings)]
+
 use crate::cli::RootCommand;
+use clap::Parser;
+use eyre::Result as EyreResult;
 
-mod cli; 
+mod cli;
 
-fn main() {
+#[tokio::main]
+async fn main() -> EyreResult<()> {
     let command = RootCommand::parse();
-    command.run();   
+    command.run().await
 }

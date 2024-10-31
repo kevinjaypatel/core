@@ -1,4 +1,4 @@
-# Core Cli Wrapper (merow) 
+# Core Cli Wrapper (crate::merow) 
 
 A CLI wrapper for the Calimero Node that provides a default node configuration file for initializing a node, and quickly running a development environment for testing P2P Calimero Apps. 
 
@@ -7,9 +7,6 @@ A CLI wrapper for the Calimero Node that provides a default node configuration f
 - Custom Node Configuration File 
 - Simple Commands to Initialize and Run a Calimero Node 
 - Creates a Node Home Directory (if it doesn't already exist)
-
-
-
 
 ## Usage
 
@@ -40,9 +37,6 @@ Start a running coordinator
 
 Start a running node   
 `$ merow -- start-node` 
-
-
- 
 
 ## Roadmap
 
