@@ -1,20 +1,30 @@
-use camino::Utf8PathBuf;
 use clap::Parser;
 use const_format::concatcp;
-// use tokio::process::Command;
 use eyre::Result as EyreResult;
-use std::{
-    process::{Command, Output, Stdio},
-    result,
-};
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
+use std::process::exit;
+use std::process::{Command, Output, Stdio};
+use toml;
 
 pub const EXAMPLES: &str = r"
-  # Start a new coordinator
-  $ merow start-coordinator 
 
-  # Start a new peer 
-  $ merow start-peer 
+  # Initialize a coordinator
+  $ merow -- init-coordinator 
+
+    # Initialize a node  
+  $ merow -- init-node 
+
+  # Start a running coordinator
+  $ merow -- start-coordinator 
+
+  # Start a running node 
+  $ merow -- start-node 
 ";
+
+// Points to the Node Cofiguration Filepath relative to the working directory
+const CONFIG_FILE_PATH: &str = "crates/merow/config/default.toml";
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -41,154 +51,129 @@ struct NodeConfig {
     home: String,
 }
 
-fn init_coordinator(data: NodeData) -> EyreResult<()> {
-    println!("Initializing coordinator...");
+fn build_command(
+    name: &str,
+    home: &str,
+    server: Option<&str>,
+    swarm: Option<&str>,
+    run_node: bool,
+) -> Command {
+    let mut command: Command = Command::new("cargo");
 
+    // Sets the default CLI arguments
+    command.args([
+        "run",
+        "-p",
+        "merod",
+        "--",
+        "--node-name",
+        name,
+        "--home",
+        home,
+    ]);
+
+    // Sets the custom CLI arguments
+    if !run_node {
+        command.args([
+            "init",
+            "--server-port",
+            server.unwrap(),
+            "--swarm-port",
+            swarm.unwrap(),
+        ]);
+    } else {
+        command.arg("run");
+    }
+
+    command.stdout(Stdio::piped()); // Capture stdout
+    command.stderr(Stdio::piped()); // Capture stderr
+
+    return command;
+}
+
+fn display_command_output(output: Output) {
+    println!("Status: {}", output.status);
+    println!("Stdout: {}", String::from_utf8_lossy(&output.stdout));
+    println!("Stderr: {}", String::from_utf8_lossy(&output.stderr));
+}
+
+fn make_direcory(node_home: &str) {
+    match fs::create_dir(node_home) {
+        Ok(()) => println!("Created Home Directory: ./{}\n", node_home),
+        Err(error) => panic!("Problem creating the Node Home directory: {error:?}"),
+    };
+}
+
+fn init_node(config: &NodeConfig) -> EyreResult<()> {
     // Sets the default configuration for the node
-    let node_name: &OsStr = OsStr::new(&data.coordinator.name);
-    let node_home: &OsStr = OsStr::new(&data.coordinator.home);
+    let node_name: &str = config.name.as_str();
+    let node_home: &str = config.home.as_str();
 
-    let server_port_str = data.coordinator.server_port.to_string();
-    let swarm_port_str = data.coordinator.swarm_port.to_string();
-    let server_port: &OsStr = OsStr::new(&server_port_str);
-    let swarm_port = OsStr::new(&swarm_port_str);
+    let server_port: &str = &config.server_port.to_string();
+    let swarm_port: &str = &config.swarm_port.to_string();
 
     // create the home directory if it doesnt exist
     if !Path::new(node_home).is_dir() {
         // Make the Node home directory
-        let result = match fs::create_dir(node_home) {
-            Ok(()) => match node_home.to_str() {
-                Some(valid_str) => println!("Created Node Home Directory: {}", valid_str),
-                None => println!("OsStr contains non-UTF-8 data: {:?}", node_home),
-            },
-            Err(error) => panic!("Problem creating the Node Home directory: {error:?}"),
-        };
+        make_direcory(node_home);
     }
 
-    // Define the command to run the other binary package within the same workspace.
-    // This example assumes the workspace has a binary package named `merod`.
-    let mut command = Command::new("cargo");
+    let mut command: Command = build_command(
+        node_name,
+        node_home,
+        Some(server_port),
+        Some(swarm_port),
+        false,
+    );
 
-    command.arg("run"); // The cargo run command
-    command.arg("-p"); // Specify the package to run
-    command.arg("merod"); // Name of the binary package in the workspace
-    command.arg("--"); // Pass any arguments to the binary after this
-    command.arg("--node-name"); // Example argument to the binary
-    command.arg(node_name);
-    command.arg("--home");
-    command.arg(node_home);
-    command.arg("init");
-    command.arg("--server-port");
-    command.arg(server_port);
-    command.arg("--swarm-port");
-    command.arg(swarm_port);
-    command.stdout(Stdio::piped()); // Capture stdout
-    command.stderr(Stdio::piped()); // Capture stderr
+    let child: Output = command.output()?; // Execute the command and get the output
 
-    let child = command.output()?; // Execute the command and get the output
-    println!("Status: {}", child.status);
-    println!("Stdout: {}", String::from_utf8_lossy(&child.stdout));
-    println!("Stderr: {}", String::from_utf8_lossy(&child.stderr));
+    display_command_output(child);
 
     Ok(()) // Return the output (stdout, stderr, and exit status)
 }
 
-fn init_node() -> EyreResult<()> {
-    println!("Initializing node...");
+async fn start_node(node_name: &str, node_home: &str) -> EyreResult<()> {
+    let mut command: Command = build_command(node_name, node_home, None, None, true);
+    let child: Output = command.output()?;
 
-    // TODO: check if the data directory exists
-
-    // Define the command to run the other binary package within the same workspace.
-    // This example assumes the workspace has a binary package named `merod`.
-    let mut command = Command::new("cargo");
-
-    command.arg("run"); // The cargo run command
-    command.arg("-p"); // Specify the package to run
-    command.arg("merod"); // Name of the binary package in the workspace
-    command.arg("--"); // Pass any arguments to the binary after this
-    command.arg("--node-name"); // Example argument to the binary
-    command.arg("node");
-    command.arg("--home");
-    command.arg("data");
-    command.arg("init");
-    command.arg("--server-port");
-    command.arg("2428");
-    command.arg("--swarm-port");
-    command.arg("2528");
-    command.stdout(Stdio::piped()); // Capture stdout
-    command.stderr(Stdio::piped()); // Capture stderr
-
-    let child = command.output()?; // Execute the command and get the output
-    println!("Status: {}", child.status);
-    println!("Stdout: {}", String::from_utf8_lossy(&child.stdout));
-    println!("Stderr: {}", String::from_utf8_lossy(&child.stderr));
-
-    Ok(()) // Return the output (stdout, stderr, and exit status)
-}
-
-async fn start_coordinator() -> EyreResult<()> {
-    println!("Running coordinator...");
-
-    let mut command = Command::new("cargo");
-
-    command.arg("run"); // The cargo run command
-    command.arg("-p"); // Specify the package to run
-    command.arg("merod"); // Name of the binary package in the workspace
-    command.arg("--"); // Pass any arguments to the binary after this
-    command.arg("--node-name"); // Example argument to the binary
-    command.arg("coordinator");
-    command.arg("--home");
-    command.arg("data");
-    command.arg("run");
-    // command.stdin(Stdio::null());
-
-    // let child = command.spawn()?;
-    let child = command.output()?;
-
-    Ok(())
-}
-
-async fn start_node() -> EyreResult<()> {
-    println!("Running node...");
-
-    let mut command = Command::new("cargo");
-
-    command.arg("run"); // The cargo run command
-    command.arg("-p"); // Specify the package to run
-    command.arg("merod"); // Name of the binary package in the workspace
-    command.arg("--"); // Pass any arguments to the binary after this
-    command.arg("--node-name"); // Example argument to the binary
-    command.arg("node1");
-    command.arg("--home");
-    command.arg("data");
-    command.arg("run");
-    // command.stdin(Stdio::null());
-
-    // let child = command.spawn()?;
-
-    // Execute the command as a child process
-    let child = command.output()?;
-
-    // Display the captured output from the child
-    println!("Status: {}", child.status);
-    println!("Stdout: {}", String::from_utf8_lossy(&child.stdout));
-    println!("Stderr: {}", String::from_utf8_lossy(&child.stderr));
-
+    display_command_output(child);
     Ok(())
 }
 
 impl RootCommand {
     pub async fn run(self) -> EyreResult<()> {
+        // Fetch the nodes configuration
+        let data = NodeData::get_node_data();
+
+        let coordinator = data.coordinator;
+        let admin = data.admin;
+
         match self.action.as_str() {
             "init-coordinator" => {
-                let data = NodeData::get_noad_data();
-
-                // TODO: check if coordinator is initialized @data.coordinator.home
-                init_coordinator(data)
+                println!("Initializing coordinator...\n");
+                init_node(&coordinator)
             }
-            "init-node" => init_node(),
-            "start-coordinator" => start_coordinator().await,
-            "start-node" => start_node().await,
+            "init-node" => {
+                println!("Initializing node...\n");
+                init_node(&admin)
+            }
+            "start-coordinator" => {
+                println!("Running coordinator...\n");
+
+                let name: &str = coordinator.name.as_str();
+                let home: &str = coordinator.home.as_str();
+
+                start_node(name, home).await
+            }
+            "start-node" => {
+                println!("Running node...\n");
+
+                let name: &str = admin.name.as_str();
+                let home: &str = admin.home.as_str();
+
+                start_node(name, home).await
+            }
             _ => {
                 println!("Unknown command...");
                 Ok(())
@@ -198,33 +183,26 @@ impl RootCommand {
 }
 
 impl NodeData {
-    fn get_noad_data() -> NodeData {
-        // TODO: Make Node Configuration Filepath constant with global scope
-        let filename = "crates/merow/config/default.toml";
-
-        let contents = match fs::read_to_string(filename) {
+    fn get_node_data() -> NodeData {
+        // Sets the contents of the configuration file to a String
+        let contents = match fs::read_to_string(CONFIG_FILE_PATH) {
             Ok(c) => c,
             Err(_) => {
-                eprintln!("Could not read file `{}`", filename);
+                eprintln!("Could not read file `{}`", CONFIG_FILE_PATH);
                 exit(1);
             }
         };
 
-        println!("TOML Contents: \n{}", contents);
-
+        // Deserializes the String into a type (NodeData)
         let node_data: NodeData = match toml::from_str(&contents) {
             Ok(nd) => nd,
             Err(_) => {
                 // Write `msg` to `stderr`.
-                eprintln!("Unable to load data from `{}`", filename);
+                eprintln!("Unable to load data from `{}`", CONFIG_FILE_PATH);
                 // Exit the program with exit code `1`.
                 exit(1);
             }
         };
-
-        // Convert the NodeData to a JSON string
-        // let serialized = serde_json::to_string(&node_data).unwrap();
-        // println!("serialized = {}", serialized);
 
         return node_data;
     }
