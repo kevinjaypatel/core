@@ -8,9 +8,30 @@ A CLI wrapper for the Calimero Node that provides a default node configuration f
 - Simple Commands to Initialize and Run a Calimero Node 
 - Creates a Node Home Directory (if it doesn't already exist)
 
+## Prerequisites
+- Rust:  [Official Rust Installation](https://www.rust-lang.org/tools/install)
+
+## Setting up
+Clone the project
+
+```bash
+  git clone https://github.com/kevinjaypatel/core.git 
+```
+
+Change to repo  
+
+```bash
+  cd core 
+```
+
+Check out cli-wrapper
+```bash
+  git branch cli-wrapper
+```
+
 ## Usage
 
-Setup the Default Configuration:  `config/default.toml` 
+Setup the Default Configuration:  `./crates/merow/config/default.toml` 
 
 ```javascript
 [coordinator]
@@ -37,6 +58,30 @@ Start a running coordinator
 
 Start a running node   
 `$ merow -- start-node` 
+
+
+## How to Run (from project root)
+
+### Build the Rust Package
+```bash
+  cargo build 
+```
+
+### Starting up  a Coordinator (same steps apply for Node Configuration)
+E.g. Initializes Coordinator (with defaults) 
+```bash
+  cargo run -p merow -- init-coordinator 
+```
+
+Start a running coordinator 
+```bash
+  cargo run -p merow -- start-coordinator 
+```
+
+### Accessing the coordinator via Admin Dashboard
+```bash
+  http://localhost:<coordinator.server_port>/admin-dashboard/
+```
 
 ## Roadmap
 
