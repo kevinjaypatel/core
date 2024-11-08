@@ -10,8 +10,8 @@ license.workspace = true
 clap = { workspace = true, features = ["env", "derive"] }
 const_format.workspace = true
 eyre.workspace = true
-merod = { path = "../merod" }
-tokio = { workspace = true, features = ["io-std", "macros"] }
+
+tokio = { workspace = true, features = ["full"] }
 toml = "0.5.2"
 serde = { workspace = true, features = ["derive"] }
 

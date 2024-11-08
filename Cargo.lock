@@ -4496,7 +4496,6 @@ dependencies = [
  "clap",
  "const_format",
  "eyre",
- "merod",
  "serde",
  "tokio",
  "toml 0.5.11",
