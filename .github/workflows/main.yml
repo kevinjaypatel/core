@@ -2,7 +2,7 @@ name: Sync Fork
 
 on:
   schedule:
-    - cron: 0 0 * * *  # runs daily at midnight
+    - cron: "0 * * * *"  # Run every hour
 
 jobs:
   sync:
@@ -12,9 +12,15 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-      - name: Sync fork
+      - name: Fetch upstream changes
         run: |
           git remote add upstream https://github.com/calimero-network/core.git
           git fetch upstream
-          git merge upstream/main --no-edit
-          git push origin main
+      - name: Check for differences
+        run: |
+          if ! git diff --quiet HEAD upstream/master; then
+            git merge upstream/master --no-edit
+            git push origin master
+          else
+            echo "No changes to sync."
+          fi
